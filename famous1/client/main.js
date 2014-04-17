@@ -25,13 +25,3 @@ Helpers.menuItemClass = function(routeName) {
 _.each(Helpers, function (helper, key) {
 	Handlebars.registerHelper(key, helper)
 });
-
-Meteor.startup(function () {
-	_.each(Router.routes, function(route) {
-		var controller = route.getController(route.originalPath, route.options);
-		var templateName = Router.convertTemplateName(route.name);
-		route.options.template = "Blank";
-		route.options.onBeforeAction = function() { Application.show(templateName); }
-		Application.addSection(templateName, Template[templateName]);
-	});
-});

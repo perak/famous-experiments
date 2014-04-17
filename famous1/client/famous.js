@@ -1,9 +1,9 @@
 require("famous-polyfills"); // Add polyfills
 require("famous/core/famous"); // Add the default css file
 
-Application = null;
+FamousApp = null;
 
-Meteor.startup(function () {
+createFamousApp = function(destElementId) {
     var Engine = require("famous/core/Engine");
     var View = require("famous/core/View");
 
@@ -35,26 +35,51 @@ Meteor.startup(function () {
         UI.insert(data ? UI.renderWithData(template, data) : UI.render(template), div);
 
         this._sectionSurfaces[name] = new Surface({
-            content: div,
-            classes: ["container"]
+            content: div
+//            classes: ["container"]
         });
     };
 
     App.prototype.show = function (sectionName) {
-        var surface = this._sectionSurfaces[sectionName];
-        if (surface) {
-            this.lightbox.show(surface);
-        }
+		var surface = this._sectionSurfaces[sectionName];
+		if (surface) {
+			this.lightbox.show(surface);
+		}
 	};
 
-    // create the App from the template
-    Application = new App();
+	App.prototype.animateRoute = function(routeName) {
+		var route = _.find(Router.routes, function(r) { return r.name == routeName; });
+		if(!route) {
+			return;
+		}
 
-    // hook the app into the context
-    var appContext = Engine.createContext();
-    // move surface down (toolbar)
-	appContext.add(new Modifier({
-    	transform: Transform.translate(0, 50)
-  	})).add(Application);
-    Engine.pipe(Application);
-});
+    	var me = this;
+		var controller = route.getController(route.originalPath, route.options);
+		var templateName = Router.convertTemplateName(route.name);
+		route.options.template = "Blank";
+		route.options.onBeforeAction = function() { me.show(templateName); }
+		me.addSection(templateName, Template[templateName]);
+	}
+
+    App.prototype.animateAllRoutes = function () {
+    	var me = this;
+		_.each(Router.routes, function(route) {
+			var controller = route.getController(route.originalPath, route.options);
+			var templateName = Router.convertTemplateName(route.name);
+			route.options.template = "Blank";
+			route.options.onBeforeAction = function() { me.show(templateName); }
+			me.addSection(templateName, Template[templateName]);
+		});
+    }
+
+	var destElement = document.getElementById(destElementId);
+	if(destElement == null) destElement = undefined;
+	// create the App from the template
+	famApp = new App();
+	// hook the app into the context
+	var appContext = Engine.createContext(destElement);
+	// move surface down (toolbar)
+	appContext.add(famApp);
+	Engine.pipe(famApp);
+	return famApp;
+}
